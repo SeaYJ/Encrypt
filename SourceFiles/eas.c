@@ -28,14 +28,13 @@ int easEncrypt(char *resPath, char *tarPath)
 
 	fclose(res_fp);
 	fclose(tar_fp);
-
 	return (0);
 }
 
 /* 对加密字符的 ASCLL 码进行取反操作，
 然后将取反后的 ASCLL 码翻译成字符存储，
 完成解密。 */
-int easDncrypt(char *resPath, char *tarPath)
+int easDecrypt(char *resPath, char *tarPath)
 {
 
 	FILE *res_fp = NULL, *tar_fp = NULL;

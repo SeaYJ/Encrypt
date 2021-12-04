@@ -3,9 +3,10 @@
 
 int main(int argc,char *argv[])
 {
+	timeGet();
 	parameterHandling(argc, argv);
-
-	return (0);
+	encrypt(encryptInfo.inputFilePath, encryptInfo.outputFilePath, encryptInfo.encryptMethod);
+	return 0;
 }
 
 int parameterHandling(int argc, char *argv[])
@@ -21,110 +22,184 @@ int parameterHandling(int argc, char *argv[])
 			printf("\n* Version\t%s\t\t\t*\n* Author\t%s\t\t\t\t*\n* OfficalPage\t%s\t\t\t\t*\n* %s\t*\n",versionInfo.version, versionInfo.author, versionInfo.officalPage, versionInfo.statement);
 			for(j=0; j<versionInfo.astrisksNum; j++) putchar('*');
 			putchar('\n');
-			return 0;
-		}
-		else if( (0==stricmp(argv[i], "-renew")) ) /* 程序更新 */
-		{
-			printf("获取更新！\n");
 
-			return 0;
+			return NO_ERROR;
 		}
-		else if( (0==stricmp(argv[i], "-i")) ) /* 获取源文件路径 */
+		else if( 0==stricmp(argv[i], "-renew") ) /* 程序更新 */
 		{
-			encryptInfo.inputFilePath = argv[i+1];
-			encryptInfo.inputFilePath = pathDeal.pathCheck(encryptInfo.inputFilePath);	 /* 源文件路径检查 */
+			system("explorer https://github.com/SeaYJ/Encrypt");
+
+			return NO_ERROR;
 		}
-		else if( (0==stricmp(argv[i], "-o")) ) /* 获取目标文件路径 */
+		else if( 0==stricmp(argv[i], "-i") ) /* 获取源文件路径 */
 		{
-			encryptInfo.outputFilePath = argv[i+1];
-			encryptInfo.outputFilePath = pathDeal.pathCheck(encryptInfo.outputFilePath); /* 目标文件路径检查 */
+			strcpy(encryptInfo.inputFilePath, argv[i+1]);
+			strcpy(encryptInfo.inputFilePath, pathDeal.pathPolish(encryptInfo.inputFilePath)); /* 源文件路径检查 */
 		}
-		else if( '+' == (*argv[i]) )	/* 获取加密方式 */
+		else if( 0==stricmp(argv[i], "-o") ) /* 获取目标文件路径 */
+		{
+			strcpy(encryptInfo.outputFilePath, argv[i+1]);
+			strcpy(encryptInfo.outputFilePath, pathDeal.pathPolish(encryptInfo.outputFilePath)); /* 目标文件路径检查 */
+		}
+		else if( '+' == *argv[i] )	/* 获取加密方式 */
 		{
 			if( 0==stricmp(argv[i], "+EAS") )
 			{
-				encryptInfo.encryptMethod = "EAS";
+				encryptInfo.encryptMethod = EAS;
 			}
 			else if( 0==stricmp(argv[i], "+PEAS") )
 			{
-				encryptInfo.encryptMethod = "PEAS";
+				encryptInfo.encryptMethod = PEAS;
 			}
 			else if( 0==stricmp(argv[i], "+DES") )
 			{
-				encryptInfo.encryptMethod = "DES";
-			}
-			else if( 0==stricmp(argv[i], "+3DES") )
-			{
-				encryptInfo.encryptMethod = "3DES";
-			}
-			else if( 0==stricmp(argv[i], "+IDEA") )
-			{
-				encryptInfo.encryptMethod = "IDEA";
+				encryptInfo.encryptMethod = DES;
 			}
 			else
 			{
-				encryptInfo.encryptMethod = "EAS";
+				printf("ERROR(1001):"
+					"There is no such encryption method!\n"
+					"From encrypt.exe\n");
+				return FUN_ERROR;
 			}
+			EncOrDec = false;
+		}
+		else if( ('-' == *argv[i]) && ('-' == *(argv[i]+1)) ) /* 获取解密方式 */
+		{
+			if( 0==stricmp(argv[i], "--EAS") )
+			{
+				encryptInfo.encryptMethod = DEAS;
+			}
+			else if( 0==stricmp(argv[i], "--PEAS") )
+			{
+				encryptInfo.encryptMethod = DPEAS;
+			}
+			else if( 0==stricmp(argv[i], "--DES") )
+			{
+				encryptInfo.encryptMethod = DDES;
+			}
+			else
+			{
+				printf("ERROR(1002):"
+					"There is no such decryption method!\n"
+					"From encrypt.exe\n");
+				return FUN_ERROR;
+			}
+			EncOrDec = true;
+		}
+		else if ( 0 == stricmp(argv[i], "-p")) /* 获取加密密码 */
+		{
+			 strcpy(encryptInfo.password, argv[i+1]);
 		}
 	}
 
 	infoCheck();
-
-	return (0);
+	
+	return 0;
 }
 
 int infoCheck()
 {
-	int numBug = 0, i;
-
-	if (NULL ==  encryptInfo.inputFilePath) // 确保后面输出文件路径能进行默认值补全处理，如果该处检查不通过应该直接结束检查，并给主程序报错！
+	if ('\0' ==  encryptInfo.inputFilePath[0]) // 确保后面输出文件路径能进行默认值补全处理，如果该处检查不通过应该直接结束检查，并给主程序报错！
 	{
-		printf("ERROR:源文件地址不存在！\n");
-		return numBug+=2; // 源路径不存在，则目标路径不应该存在
+		printf("ERROR(1003):"
+			"When checking the file path,\n"
+			"it was found that the target file path did not exist!\n"
+			"From encrypt.exe\n");
+		return FUN_ERROR;
+	}
+	else
+	{
+		inputFilePathDeal(encryptInfo.inputFilePath);
 	}
 
-	if (NULL == encryptInfo.outputFilePath)
+	if ('\0' == encryptInfo.outputFilePath[0]) // 当用户未输入输出路径时生产一个默认的输出路径
 	{
-		inputFilePathDeal();
+		if ((NULL == resFileInfo.docName) || (NULL == resFileInfo.fileEnv) || (NULL == resFileInfo.fileName) || (NULL == resFileInfo.suffixName))
+		{
+			printf("ERROR(1004):"
+				"When we checked the file path and prepared to generate the default output path,\n"
+				"we found that the specific information of the input file was incomplete!\n"
+				"From encrypt.exe\n");
+			return FUN_ERROR;
+		}
+		strcat(encryptInfo.outputFilePath, resFileInfo.fileEnv);
+		strcat(encryptInfo.outputFilePath, resFileInfo.docName);
+		(EncOrDec) ? (strcat(encryptInfo.outputFilePath, "_DNCRYPTED_")) : (strcat(encryptInfo.outputFilePath, "_EECRYPTED_"));
+		strcat(encryptInfo.outputFilePath, timer.year);
+		strcat(encryptInfo.outputFilePath, timer.month);
+		strcat(encryptInfo.outputFilePath, timer.day);
+		strcat(encryptInfo.outputFilePath, timer.hour);
+		strcat(encryptInfo.outputFilePath, timer.minute);
+		strcat(encryptInfo.outputFilePath, timer.second);
+		strcat(encryptInfo.outputFilePath, ".");
+		strcat(encryptInfo.outputFilePath, resFileInfo.suffixName);
 	}
+	
 
-	return numBug;
+	return NO_ERROR;
 }
 
-int inputFilePathDeal()
+/* 此函数用于提取输入路径的 文件名、文件扩展名、文件环境、文件全称 */
+int inputFilePathDeal(char *inputPath)
 {
-	bool flagSuf = false, flagDoc = false;
-	int i = 0, suffixPoint = 0, docPoint = 0, startPoint = 0, endPoint = 0, index = 0;
-	char * ch;
+	/* 用于确定第一次出现分界标志：
+	第一次出现会将其值改为 true ，用于表示已经找到了分界标志（即已获得分界点）。 */
+	bool flagSuf = false, flagDoc = false; 
 
-	if (NULL == encryptInfo.inputFilePath) return 1;
+	int i = 0, suffixPoint = 0, docPoint = 0, startPoint = 0, endPoint = 0, index = 0;
+
+	if (NULL == inputPath) return FUN_ERROR;
 
 	endPoint = strlen(encryptInfo.inputFilePath);
 
-	for(i=endPoint; i>=0; i--)
+	for(i=endPoint; i>=0; i--) /* 确定分界点 */
 	{
-		if((!flagSuf) && ('.' == ch[i]))
+		if((!flagSuf) && ('.' == inputPath[i]))
 		{
 			flagSuf = true;
 			suffixPoint = i;
 		}
 
-		if((!flagDoc) && ('\\' == ch[i]))
+		if((!flagDoc) && ('\\' == inputPath[i]))
 		{
 			flagDoc = true;
 			docPoint = i;
 		}
 	}
 
-	for (i=(suffixPoint+1); i<endPoint; i++)
+	for (i=(suffixPoint+1); i<endPoint; i++) /* 提取文件名 */
 	{
-		resFileInfo.nameSuffix[index++] = 
+		resFileInfo.suffixName[index++] = inputPath[i];
 	}
+	resFileInfo.suffixName[index] = '\0';
+	index = 0;
 
-	return 0;
+	for(i=(docPoint+1); i<suffixPoint; i++) /* 提取文件扩展名 */
+	{
+		resFileInfo.docName[index++] = inputPath[i];
+	}
+	resFileInfo.docName[index] = '\0';
+	index = 0;
+	
+	for(i=(docPoint+1); i<endPoint; i++) /* 提取文件全名 */
+	{
+		resFileInfo.fileName[index++] = inputPath[i];
+	}
+	resFileInfo.fileName[index] = '\0';
+	index = 0;
+
+	for(i=0; i<=docPoint; i++) /* 提取文件环境 */
+	{
+		resFileInfo.fileEnv[index++] = inputPath[i];
+	}
+	resFileInfo.fileEnv[index] = '\0';
+	index = 0;
+
+	return NO_ERROR;
 }
 
-char* pathCheckFunction(char *res_path) 
+char* pathPolishFunction(char *res_path) 
 {
 	int len = strlen(res_path), i = 0;
 	
@@ -154,32 +229,39 @@ char* pathCheckFunction(char *res_path)
 	return right_path;
 }
 
-int encryptionMethodSelection(char *inputFilePath, char *outputFilePath, char *encryptMethod)
+int encrypt(char *inputFilePath, char *outputFilePath, enum EncMethod encWay)
 {
-	if( 0==stricmp(encryptMethod, "+EAS") )
+	switch(encWay)
 	{
-		easEncrypt(inputFilePath, outputFilePath);
-	}
-	else if( 0==stricmp(encryptMethod, "+PEAS") )
-	{
-		printf("这里要调用 %s 加密函数！\n", encryptMethod);
-	}
-	else if( 0==stricmp(encryptMethod, "+DES") )
-	{
-		printf("这里要调用 %s 加密函数！\n", encryptMethod);
-	}
-	else if( 0==stricmp(encryptMethod, "+3DES") )
-	{
-		printf("这里要调用 %s 加密函数！\n", encryptMethod);
-	}
-	else if( 0==stricmp(encryptMethod, "+IDEA") )
-	{
-		printf("这里要调用 %s 加密函数！\n", encryptMethod);
-	}
-	else
-	{
-		printf("这里发生未知错误！\n");
+	case 0:easEncrypt(inputFilePath, outputFilePath);break;
+	case 1:easDecrypt(inputFilePath, outputFilePath);break;
+
+	case 2:break;
+	case 3:break;
+	default:printf("ERROR(1005):"
+				"When calling the function according to the encryption method,\n"
+				"we did not find the corresponding encryption function or program!\n"
+				"From encrypt.exe\n");
 	}
 
-	return 0;
+	return NO_ERROR;
+}
+
+int timeGet()
+{
+	time_t now;
+	struct tm *tm_now;
+	time(&now);
+	tm_now = localtime(&now);
+
+
+	itoa((tm_now->tm_year + 1900), timer.year, 10);
+	itoa((tm_now->tm_mon + 1), timer.month, 10);
+	itoa(tm_now->tm_mday, timer.day, 10);
+	itoa(tm_now->tm_hour, timer.hour, 10);
+	itoa(tm_now->tm_min, timer.minute, 10);
+	itoa(tm_now->tm_sec, timer.second, 10);
+	
+
+	return NO_ERROR;
 }

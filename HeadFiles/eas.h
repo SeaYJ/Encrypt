@@ -10,6 +10,6 @@ int easEncrypt(char *resPath, char *tarPath);
 /* EAS 解密算法函数（虽然解密算法函数和加密算法函数的算法一致），
 但是为了增加程序的逻辑性和整体架构，
 所以保留此函数）。 */
-int easDncrypt(char *resPath, char *tarPath);
+int easDecrypt(char *resPath, char *tarPath);
 
 #endif
